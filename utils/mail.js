@@ -11,13 +11,14 @@ const generateOTP = () => {
 
 const mailTransport = () => 
     nodemailer.createTransport({
-        host: "sandbox.smtp.mailtrap.io",
-        port: 2525,
+        host: "live.smtp.mailtrap.io",
+        port: 587,
         auth: {
-            user: process.env.MAILTRAP_USERNAME,
-            pass: process.env.MAILTRAP_PASSWORD
+            user: process.env.MAILTRAP_PROD_USERNAME,
+            pass: process.env.MAILTRAP_PROD_PASSWORD
         }
-    });
+    }
+);
 
 const generateEmailTemplate = (code, url) => {
     return(
@@ -49,7 +50,7 @@ const generateEmailTemplate = (code, url) => {
                     ${code}
                 </p>
                 <p style="font-weight: bold; text-align: center;">
-                    Your verification code will expire in 5 minutes  
+                    Your verification code will expire in 1 minute  
                 </p>
             </div>
         </div>
