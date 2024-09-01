@@ -10,6 +10,8 @@ const generateOTP = () => {
 }
 
 const mailTransport = () => 
+    console.log("process.env.MAILTRAP_PROD_USERNAME:", process.env.MAILTRAP_PROD_USERNAME);
+    console.log("process.env.MAILTRAP_PROD_PASSWORD:", process.env.MAILTRAP_PROD_PASSWORD);
     nodemailer.createTransport({
         host: "live.smtp.mailtrap.io",
         port: 587,
