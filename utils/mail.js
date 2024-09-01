@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { MailtrapTransport } = require("mailtrap");
 
 const generateOTP = () => {
     let otp = '';
@@ -10,16 +11,10 @@ const generateOTP = () => {
 }
 
 const mailTransport = () => 
-    console.log("process.env.MAILTRAP_PROD_USERNAME:", process.env.MAILTRAP_PROD_USERNAME);
-    console.log("process.env.MAILTRAP_PROD_PASSWORD:", process.env.MAILTRAP_PROD_PASSWORD);
-    nodemailer.createTransport({
-        host: "live.smtp.mailtrap.io",
-        port: 587,
-        auth: {
-            user: process.env.MAILTRAP_PROD_USERNAME,
-            pass: process.env.MAILTRAP_PROD_PASSWORD
-        }
-    }
+    nodemailer.createTransport(
+        MailtrapTransport({
+            token: process.env.MAILTRAP_TOKEN,
+        })
 );
 
 const generateEmailTemplate = (code, url) => {
@@ -52,7 +47,7 @@ const generateEmailTemplate = (code, url) => {
                     ${code}
                 </p>
                 <p style="font-weight: bold; text-align: center;">
-                    Your verification code will expire in 1 minute  
+                    Your verification code will expire in 5 minutes  
                 </p>
             </div>
         </div>
