@@ -72,6 +72,59 @@ const userRegister = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await AppUser.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        const otp = await generateAndSaveOTP(user._id);
+
+        mailTransport().sendMail({
+            from: 'do_not_reply@bizmunch.com',
+            to: user.email,
+            subject: 'Biz MuncH - Password Reset Request',
+            html: generateEmailTemplate(otp)
+        });
+
+        res.status(200).json({ message: 'Password reset OTP sent to your email.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
+};
+
+const verifyForgotPassword = async (req, res) => {
+    const { email, verificationCode, newPassword } = req.body;
+
+    try {
+        const user = await AppUser.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        const token = await VerificationToken.findOne({ owner: user._id });
+        if (!token) {
+            return res.status(404).json({ error: 'Token not found.' });
+        }
+
+        const isMatch = await bcrypt.compare(verificationCode, token.token);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        await VerificationToken.findByIdAndDelete(token._id);
+
+        res.status(200).json({ message: 'Password reset successful. You can now log in with your new password.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Something went wrong. Please try again.' });
+    }
+};
+
 const verifyEmail = async (req, res) => {
     try {
         const { userId, otp } = req.body;
@@ -360,6 +413,8 @@ const getRotatedRestaurants = async (req, res) => {
 module.exports = {
     userRegister,
     verifyEmail,
+    forgotPassword,
+    verifyForgotPassword,
     verifyUserExists,
     handleTokenExpiration,
     userLogIn,
