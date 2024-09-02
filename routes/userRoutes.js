@@ -14,10 +14,6 @@ router.post('/register', [
     body('invitation').not().isEmpty().trim().escape()
 ], userRegister);
 
-router.post('/forgot-password', forgotPassword);
-
-router.post('/verify-forgot-password', verifyForgotPassword);
-
 router.post('/verify-email', [
     body('userId').not().isEmpty().withMessage('User ID is required'),
     body('otp').not().isEmpty().withMessage('OTP is required')
@@ -26,6 +22,10 @@ router.post('/verify-email', [
 router.post('/verify-user', [
     body('userId').not().isEmpty().withMessage('User ID is required')
 ], verifyUserExists);
+
+router.post('/forgot-password', forgotPassword);
+
+router.post('/verify-forgot-password', verifyForgotPassword);
 
 router.post('/auth', [
     body('email').isEmail().withMessage('Enter a valid email address'),
