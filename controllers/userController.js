@@ -5,7 +5,7 @@ const AppUser = require('../models/userModel');
 const Company = require('../models/companyModel');
 const Restaurant = require('../models/restaurantModel');
 const VerificationToken = require('../models/VerificationToken');
-const { sendError, generateOTP, mailTransport, generateEmailTemplate } = require('../utils/mail');
+const { sendError, generateOTP, mailTransport, generateEmailTemplate, verifyOTPTemplate } = require('../utils/mail');
 
 const generateAndSaveOTP = async (userId) => {
     const otp = generateOTP();
@@ -59,7 +59,7 @@ const userRegister = async (req, res) => {
             from: 'do_not_reply@bizmunch.com',
             to: savedUser.email,
             subject: 'Biz Munch - Verify Your Email Address',
-            html: generateEmailTemplate(otp) // Sending the non-hashed OTP via email
+            html: generateEmailTemplate(otp)
         });
 
         res.status(201).json({
@@ -69,6 +69,41 @@ const userRegister = async (req, res) => {
     } catch (error) {
         // console.error("Error during registration:", error);
         res.status(500).json({ message: "Internal server error during registration." });
+    }
+};
+
+const verifyEmail = async (req, res) => {
+    try {
+        const { userId, otp } = req.body;
+        const user = await AppUser.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Find the verification token by user ID
+        const token = await VerificationToken.findOne({ owner: user._id });
+        if (!token) {
+            return res.status(404).json({ error: 'Token not found.' });
+        }
+
+        // Compare OTP (using bcrypt's compare function)
+        const isMatch = await bcrypt.compare(otp, token.token);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
+        }
+
+        // Mark user as verified and remove the expiration time
+        user.verified = true;
+        user.expireAt = undefined;
+        await user.save();
+
+        // Delete the verification token
+        await VerificationToken.findByIdAndDelete(token._id);
+
+        res.status(200).json({ message: 'Email verified successfully!' });
+    } catch (error) {
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -124,43 +159,6 @@ const verifyForgotPassword = async (req, res) => {
         res.status(500).json({ message: 'Something went wrong. Please try again.' });
     }
 };
-
-const verifyEmail = async (req, res) => {
-    try {
-        const { userId, otp } = req.body;
-        const user = await AppUser.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-
-        // Find the verification token by user ID
-        const token = await VerificationToken.findOne({ owner: user._id });
-        if (!token) {
-            return res.status(404).json({ error: 'Token not found.' });
-        }
-
-        // Compare OTP (using bcrypt's compare function)
-        const isMatch = await bcrypt.compare(otp, token.token);
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
-        }
-
-        // Mark user as verified and remove the expiration time
-        user.verified = true;
-        user.expireAt = undefined;
-        await user.save();
-
-        // Delete the verification token
-        await VerificationToken.findByIdAndDelete(token._id);
-
-        res.status(200).json({ message: 'Email verified successfully!' });
-    } catch (error) {
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
-    }
-};
-
-
 
 const handleTokenExpiration = async (user, res) => {
     await AppUser.findByIdAndDelete(user._id);
