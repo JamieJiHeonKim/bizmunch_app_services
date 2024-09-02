@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const AppUser = require('../models/userModel');
 const router = express.Router();
 const cron = require('node-cron');
-const { userRegister, verifyEmail, verifyUserExists, userLogIn, updateUserPassword, updateFavorites, updateRotation, getRotatedRestaurants, getPinnedRestaurants } = require('../controllers/userController');
+const { userRegister, verifyEmail, forgotPassword, verifyForgotPassword, verifyUserExists, userLogIn, updateUserPassword, updateFavorites, updateRotation, getRotatedRestaurants, getPinnedRestaurants } = require('../controllers/userController');
 
 router.post('/register', [
     body('email').isEmail().withMessage('Enter a valid email address'),
@@ -13,6 +13,10 @@ router.post('/register', [
     body('company').not().isEmpty().trim().escape(),
     body('invitation').not().isEmpty().trim().escape()
 ], userRegister);
+
+router.post('/forgot-password', forgotPassword);
+
+router.post('/verify-forgot-password', verifyForgotPassword);
 
 router.post('/verify-email', [
     body('userId').not().isEmpty().withMessage('User ID is required'),
