@@ -56,7 +56,7 @@ const appUserSchema = new mongoose.Schema({
             managerEmail: { type: String },
             category: { type: String, required: true },
             logo: { type: String },
-            barcode: { type: String, required: true },
+            // barcode: { type: String, required: true },
             menuId: { type: mongoose.Schema.Types.ObjectId, ref: 'Menu' }
         }
     ]

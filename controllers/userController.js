@@ -29,7 +29,6 @@ const userRegister = async (req, res) => {
             category: restaurant.category,
             location: restaurant.location,
             logo: restaurant.logo,
-            barcode: restaurant.barcode
         }));
         
         const existingUser = await AppUser.findOne({ email });
@@ -67,7 +66,6 @@ const userRegister = async (req, res) => {
             user: savedUser,
         });
     } catch (error) {
-        // console.error("Error during registration:", error);
         res.status(500).json({ message: "Internal server error during registration." });
     }
 };
@@ -81,24 +79,20 @@ const verifyEmail = async (req, res) => {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        // Find the verification token by user ID
         const token = await VerificationToken.findOne({ owner: user._id });
         if (!token) {
             return res.status(404).json({ error: 'Token not found.' });
         }
 
-        // Compare OTP (using bcrypt's compare function)
         const isMatch = await bcrypt.compare(otp, token.token);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
         }
 
-        // Mark user as verified and remove the expiration time
         user.verified = true;
         user.expireAt = undefined;
         await user.save();
 
-        // Delete the verification token
         await VerificationToken.findByIdAndDelete(token._id);
 
         res.status(200).json({ message: 'Email verified successfully!' });
@@ -191,7 +185,6 @@ const userLogIn = async (req, res) => {
         }
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1y' });
 
-        // Fetch user's pinned restaurants
         const pinnedRestaurants = user.favorites || [];
 
         res.json({
@@ -206,7 +199,6 @@ const userLogIn = async (req, res) => {
             pinnedRestaurants
         });
     } catch (err) {
-        // console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -220,7 +212,6 @@ const getPinnedRestaurants = async (req, res) => {
         }
         res.status(200).json(user.favorites);
     } catch (err) {
-        // console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -266,7 +257,6 @@ const updateFavorites = async (req, res) => {
 
         res.status(200).json({ message: 'Favorites updated successfully.', favorites: user.favorites });
     } catch (error) {
-        // console.error('Error updating favorites:', error);
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
@@ -275,7 +265,6 @@ const updateRotation = async (userId) => {
     try {
         const user = await AppUser.findById(userId);
         if (!user) {
-            // console.error('User not found.');
             return;
         }
 
@@ -290,10 +279,8 @@ const updateRotation = async (userId) => {
                     category: restaurant.category,
                     location: restaurant.location,
                     logo: restaurant.logo,
-                    barcode: restaurant.barcode
                 };
             } else {
-                // console.error(`Favorite restaurant not found: ${favorite}`);
                 return null;
             }
         }).filter(item => item !== null);
@@ -308,16 +295,13 @@ const updateRotation = async (userId) => {
             category: restaurant.category,
             location: restaurant.location,
             logo: restaurant.logo,
-            barcode: restaurant.barcode
         }));
 
-        // Combine favorites and randomly selected restaurants
         user.rotation = [...selectedFavorites, ...selectedRestaurants];
         
         await user.save();
         console.log(`Rotation updated successfully for user: ${userId}`);
     } catch (error) {
-        // console.error('Error updating rotation:', error);
         return;
     }
 };
@@ -332,7 +316,6 @@ const getRotatedRestaurants = async (req, res) => {
 
         const gfs = req.app.locals.gfs;
         if (!gfs) {
-            // console.error('GridFS is not initialized');
             return res.status(500).json({ message: 'GridFS is not initialized' });
         }
 
@@ -364,46 +347,17 @@ const getRotatedRestaurants = async (req, res) => {
                 logo = `data:image/png;base64,${buffer.toString('base64')}`;
             }
 
-            let barcode = null;
-            if (restaurant.barcode) {
-                const barcodeFile = await gfs.find({ _id: new mongoose.Types.ObjectId(restaurant.barcode) }).toArray();
-                if (!barcodeFile || barcodeFile.length === 0) {
-                    throw new Error(`No file found for barcode ID: ${restaurant.barcode}`);
-                }
-
-                const readStream = gfs.openDownloadStream(barcodeFile[0]._id);
-                const chunks = [];
-
-                readStream.on('data', (chunk) => {
-                    chunks.push(chunk);
-                });
-
-                const buffer = await new Promise((resolve, reject) => {
-                    readStream.on('end', () => {
-                        resolve(Buffer.concat(chunks));
-                    });
-
-                    readStream.on('error', (err) => {
-                        reject(err);
-                    });
-                });
-
-                barcode = `data:image/png;base64,${buffer.toString('base64')}`;
-            }
-
             return {
                 _id: restaurant.restaurantId._id,
                 name: restaurant.name,
                 category: restaurant.category,
                 location: restaurant.location,
                 logo: logo,
-                barcode: barcode
             };
         }));
 
         res.json(restaurantsWithImages);
     } catch (error) {
-        // console.error('Error fetching rotated restaurants:', error);
         res.status(500).json({ message: 'Failed to fetch rotated restaurants' });
     }
 };
